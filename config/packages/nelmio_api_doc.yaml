@@ -1,0 +1,27 @@
+nelmio_api_doc:
+    documentation:
+        info:
+            title: Medical Appointment API
+            description: Minimal API skeleton with a healthcheck endpoint.
+            version: 1.0.0
+        paths:
+            /api/health:
+                get:
+                    tags: [Health]
+                    summary: Health check
+                    responses:
+                        '200':
+                            description: Service is healthy
+                            content:
+                                application/json:
+                                    schema:
+                                        type: object
+                                        required: [ok]
+                                        properties:
+                                            ok:
+                                                type: boolean
+                                                example: true
+    areas:
+        default:
+            path_patterns:
+                - ^/api/health$

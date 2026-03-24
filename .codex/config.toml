@@ -1,0 +1,35 @@
+model = "gpt-5-codex"
+review_model = "gpt-5.4"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+model_auto_compact_token_limit = 180000
+project_root_markers = [".git"]
+
+[sandbox_workspace_write]
+network_access = false
+writable_roots = ["./ai-orchestration", "./ai-orchestration/runtime", "./.codex/sessions", "./src", "./config", "./docs", "./openapi", "./tests", "./scripts", "./docker", "./.github", "./var", "./README.md", "./AGENTS.md", "./Makefile", "./compose.yaml", "./compose.dev.yaml", "./composer.json", "./composer.lock", "./.env.dist"]
+
+[otel]
+environment = "medical-appointment-api"
+exporter = "none"
+trace_exporter = "none"
+metrics_exporter = "none"
+log_user_prompt = true
+
+[shell_environment_policy]
+exclude = ["*_TOKEN", "*_SECRET", "*_PASSWORD", "*_KEY", "DATABASE_URL"]
+
+[profiles.subagent]
+model = "gpt-5.4-mini"
+approval_policy = "never"
+sandbox_mode = "workspace-write"
+
+[profiles.reviewer]
+model = "gpt-5.4"
+approval_policy = "never"
+sandbox_mode = "workspace-write"
+
+[profiles.security]
+model = "gpt-5.4"
+approval_policy = "never"
+sandbox_mode = "workspace-write"

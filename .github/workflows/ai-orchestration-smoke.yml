@@ -1,0 +1,39 @@
+name: AI Orchestration Smoke
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install AI orchestration dependencies
+        run: |
+          python -m venv ai-orchestration/.venv
+          source ai-orchestration/.venv/bin/activate
+          pip install -r ai-orchestration/requirements.txt
+
+      - name: Shell syntax check
+        run: bash -n ai-orchestration/scripts/ai_*.sh scripts/ai_*.sh
+
+      - name: Python compile check
+        run: python -m py_compile ai-orchestration/ai_*.py
+
+      - name: Command wiring dry-run
+        run: make -n ai-bootstrap ai-workflow ROLE=synthesis TASK="smoke" ai-parallel ai-evidence

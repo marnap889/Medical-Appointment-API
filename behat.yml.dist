@@ -1,0 +1,12 @@
+default:
+  suites:
+    api:
+      paths:
+        - tests/Behat/features
+      contexts:
+        - App\Tests\Behat\Context\ApiContext
+  extensions:
+    FriendsOfBehat\SymfonyExtension:
+      bootstrap: tests/bootstrap.php
+      kernel:
+        class: App\Kernel

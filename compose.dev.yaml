@@ -1,0 +1,26 @@
+services:
+  php:
+    build:
+      target: php-dev
+    image: medical-appointment-api/php:dev
+    volumes:
+      - ./:/app
+    environment:
+      APP_DEBUG: "1"
+      XDEBUG_MODE: develop,debug,coverage
+      XDEBUG_START_WITH_REQUEST: trigger
+      XDEBUG_CLIENT_HOST: host.docker.internal
+      XDEBUG_CLIENT_PORT: "9003"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  nginx:
+    volumes:
+      - ./:/app
+
+  postgres:
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+
+volumes:
+  pgdata_dev:
