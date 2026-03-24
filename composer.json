@@ -57,7 +57,6 @@
     "post-update-cmd": [
       "@php bin/console cache:clear"
     ],
-    "test": "vendor/bin/phpunit",
     "test:unit": "vendor/bin/phpunit --testsuite Unit",
     "test:behat": "vendor/bin/behat -c behat.yml.dist",
     "phpstan": "vendor/bin/phpstan analyse",

@@ -18,6 +18,7 @@ The design goal is to keep the core booking logic isolated from transport and st
 - Schedule availability
 - Appointment booking
 - Appointment cancellation
+- Authentication (patient and doctor login with bearer token)
 
 Current runtime baseline is intentionally minimal (`GET /api/health`) so AI workflows can grow the codebase in controlled increments.
 
@@ -31,10 +32,18 @@ For a medical appointment API, a modular monolith is the best trade-off:
 
 ## Persistence strategy
 
-The bootstrap starts with an in-memory repository for the first use case so that:
-- domain rules can be implemented and tested immediately
-- Doctrine mapping can be introduced incrementally
-- AI agents can evolve the system in small, auditable steps
+Runtime persistence is Doctrine-first:
+- runtime repositories should use Doctrine adapters
+- schema changes should include explicit Doctrine migrations in the same change set
+- in-memory repositories are allowed only in tests
+
+## Authorization and data scope
+
+- both patients and doctors authenticate with credentials and bearer tokens
+- role-based access is required (`ROLE_PATIENT`, `ROLE_DOCTOR`)
+- doctor calendar endpoints are scoped to one doctor context
+- patient appointment endpoints are scoped to one patient context
+- do not expose cross-doctor/cross-patient global calendar data
 
 ## Logging and auditability
 

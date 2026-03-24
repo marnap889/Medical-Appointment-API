@@ -10,3 +10,5 @@ default:
       bootstrap: tests/bootstrap.php
       kernel:
         class: App\Kernel
+        environment: test
+        debug: false

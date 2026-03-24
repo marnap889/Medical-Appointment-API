@@ -34,7 +34,6 @@ AI-first repository for a domain-driven medical appointment API built with **PHP
 - `docs/` – architecture, ADRs, security, privacy, API design
 - `openapi/` – OpenAPI contract draft
 - `ai-orchestration/` – isolated Agents SDK orchestration + runtime artifacts
-- `scripts/` – compatibility wrappers delegating to `ai-orchestration/scripts/`
 - `docker/` – local development containers
 
 ## Quick start
@@ -117,14 +116,6 @@ make ai-workflow ROLE=synthesis TASK="Merge specialist findings into one executi
 make ai-parallel TASK="Review current state and propose next increment"
 ```
 
-Or via root wrappers:
-
-```bash
-./scripts/ai_bootstrap.sh
-./scripts/ai_run_workflow.sh architecture "Design the next booking increment and ADR"
-./scripts/ai_run_parallel_workflow.sh "Review current state and propose next increment"
-```
-
 ### 7. Package evidence
 
 ```bash
@@ -145,6 +136,5 @@ This repository intentionally separates:
 
 - **product code** in Symfony/PHP
 - **AI orchestration + AI artifacts** under `ai-orchestration/`
-- **compatibility wrappers** in root `scripts/`
 
 That separation makes the workflow easier to scale and audit.

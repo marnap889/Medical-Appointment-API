@@ -25,7 +25,7 @@ composer-update:
 test: test-unit test-behat
 
 test-unit:
-	$(COMPOSE) exec php vendor/bin/phpunit
+	$(COMPOSE) exec php vendor/bin/phpunit --testsuite Unit
 
 test-behat:
 	$(COMPOSE) exec php vendor/bin/behat -c behat.yml.dist

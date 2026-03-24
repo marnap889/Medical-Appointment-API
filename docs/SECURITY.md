@@ -14,14 +14,17 @@
 - no secrets committed to the repo
 - structured separation of domain and infrastructure
 - database access through clearly owned boundaries
-- CORS intentionally documented and limited to API path
+- CORS is intentionally documented and limited to an API path
+- password hashes only (no plain-text credential storage)
+- bearer-token authentication for patient and doctor flows
+- role-based access split (`ROLE_PATIENT`, `ROLE_DOCTOR`)
+- endpoint data scope limited to one patient or one doctor context
 - approvals enabled for main Codex interactive sessions
 - subagents run in non-interactive sandboxed mode where possible
 - AI workflow artifacts isolated under `ai-orchestration/runtime/`
 
 ## Future enhancements
 
-- authentication and authorization
 - rate limiting
 - API idempotency keys for booking
 - optimistic locking for slot contention

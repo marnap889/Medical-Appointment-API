@@ -8,8 +8,14 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from ai_codex_mcp import build_codex_mcp_server
-from ai_logging_utils import append_text, utc_now, write_jsonl, write_text
-from ai_run_workflow import ensure_openai_api_key, execute_specialist, mirror_sessions_if_enabled
+from ai_logging_utils import append_text, render_decision_template, utc_now, write_jsonl, write_text
+from ai_run_workflow import (
+    configure_mcp_elicitation_fallback,
+    configure_runtime_logging,
+    ensure_openai_api_key,
+    execute_specialist,
+    mirror_sessions_if_enabled,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 AI_ROOT = PROJECT_ROOT / "ai-orchestration"
@@ -17,13 +23,15 @@ LOGS = AI_ROOT / "runtime" / "logs"
 AGENT_RUNS = LOGS / "agent_runs"
 SUMMARIES = LOGS / "summaries"
 DECISIONS = LOGS / "decisions"
+DECISION_TEMPLATE = DECISIONS / "TEMPLATE.md"
 TOOLING = LOGS / "tooling"
 SPECIALIST_ROLES = ["architecture", "implementation", "review", "testing", "security"]
 
 
 async def execute_isolated_role(role: str, task: str) -> str:
     async with build_codex_mcp_server() as codex_server:
-        return await execute_specialist(role, task, codex_server)
+        output, _activity = await execute_specialist(role, task, codex_server)
+        return output
 
 
 def build_synthesis_task(task: str, role_results: dict[str, dict[str, str]]) -> str:
@@ -43,6 +51,8 @@ def build_synthesis_task(task: str, role_results: dict[str, dict[str, str]]) -> 
 
 async def main() -> None:
     load_dotenv(AI_ROOT / ".env")
+    configure_runtime_logging()
+    configure_mcp_elicitation_fallback()
     ensure_openai_api_key()
     task = os.getenv("PARALLEL_TASK", "Review the current booking flow and propose the next best iteration.")
     run_id = utc_now().replace(":", "-")
@@ -94,20 +104,21 @@ async def main() -> None:
 
     markdown += f"## Synthesis ({synthesis_status})\n{synthesis_output}\n"
 
-    write_text(SUMMARIES / f"{run_id}-parallel.md", markdown)
-    write_text(
-        DECISIONS / f"{run_id}-parallel.md",
-        (
-            "# Parallel decision log\n\n"
-            f"- Task: {task}\n"
-            f"- Timestamp: {utc_now()}\n"
-            f"- Specialist roles: {', '.join(SPECIALIST_ROLES)}\n"
-            f"- Synthesis status: {synthesis_status}\n\n"
-            "## Human acceptance\n"
-            "- Mark accepted recommendations\n"
-            "- Mark rejected/deferred recommendations and rationale\n"
-        ),
+    summary_path = SUMMARIES / f"{run_id}-parallel.md"
+    write_text(summary_path, markdown)
+    decision_path = DECISIONS / f"{run_id}-parallel.md"
+    decision_summary = (
+        f"See {summary_path.relative_to(PROJECT_ROOT).as_posix()}; "
+        f"synthesis_status={synthesis_status}; roles={', '.join(SPECIALIST_ROLES)}"
     )
+    decision_content = render_decision_template(
+        DECISION_TEMPLATE,
+        date=utc_now(),
+        workflow="parallel",
+        task=task,
+        summary=decision_summary,
+    )
+    write_text(decision_path, decision_content)
 
     mirror_sessions_if_enabled()
     append_text(TOOLING / "runs.log", f"{utc_now()} workflow=parallel task={task}\n")

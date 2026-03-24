@@ -15,11 +15,12 @@ Orchestration layer:
 ## Workflow
 
 1. Clarify scope and acceptance criteria
-2. Run one specialist role for deep work (`ai_run_workflow.sh <role>`)
-3. Run 5 specialist agents in parallel (`ai_run_parallel_workflow.sh`)
-4. Execute synthesis pass over all specialist outputs
-5. Record decision log, summary and git snapshot
-6. Package evidence for audit/review
+2. Select an active milestone from `docs/ROADMAP-MILESTONES.md`
+3. Run one specialist role for deep work (`ai_run_workflow.sh <role>`)
+4. Run 5 specialist agents in parallel (`ai_run_parallel_workflow.sh`)
+5. Execute synthesis pass over all specialist outputs
+6. Record decision log, summary and git snapshot
+7. Package evidence for audit/review
 
 ## Conflict resolution policy (Synthesis)
 
@@ -56,7 +57,7 @@ Compatibility alias:
    - `./ai-orchestration/scripts/ai_bootstrap_runtime.sh`
 3. Validate wiring and syntax:
    - `make -n ai-bootstrap ai-workflow ROLE=synthesis TASK="test" ai-parallel ai-evidence`
-   - `bash -n ai-orchestration/scripts/ai_*.sh scripts/ai_*.sh`
+   - `bash -n ai-orchestration/scripts/ai_*.sh`
    - `python3 -m py_compile ai-orchestration/ai_*.py`
 4. Run one specialist flow:
    - `./ai-orchestration/scripts/ai_run_workflow.sh architecture "Design booking invariants"`
@@ -88,3 +89,9 @@ The human remains responsible for:
 - accepting/rejecting AI suggestions
 - protecting security/privacy boundaries
 - ensuring final correctness
+
+## Milestone-driven execution
+
+- milestone definitions live in `docs/ROADMAP-MILESTONES.md`
+- agents should execute one milestone at a time
+- each completed milestone should end with one commit

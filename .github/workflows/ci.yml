@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  ai-workflow-validation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Python Runtime
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Setup Node Runtime
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Install AI Workflow Dependencies
+        run: |
+          python -m venv ai-orchestration/.venv
+          source ai-orchestration/.venv/bin/activate
+          pip install -r ai-orchestration/requirements.txt
+
+      - name: Validate Shell Scripts
+        run: bash -n ai-orchestration/scripts/ai_*.sh
+
+      - name: Validate Python Orchestration Modules
+        run: python -m py_compile ai-orchestration/ai_*.py
+
+      - name: Validate MCP Elicitation Approval Contract
+        run: |
+          source ai-orchestration/.venv/bin/activate
+          python ai-orchestration/scripts/ai_validate_elicitation_contract.py
+
+      - name: Validate Make Command Wiring
+        run: make -n ai-bootstrap ai-workflow ROLE=synthesis TASK="validation" ai-parallel ai-evidence

@@ -38,6 +38,11 @@ Model the domain explicitly:
 - application services orchestrate use cases
 - repositories are interfaces in the domain/application boundary
 
+Persistence policy:
+- runtime repositories should be Doctrine-backed (no in-memory repositories in production/runtime code)
+- in-memory repositories are allowed only in tests
+- schema changes must include Doctrine migrations
+
 ## PHP / Symfony conventions
 
 - Use PHP 8.5 syntax where it improves readability.
@@ -85,11 +90,27 @@ For AI orchestration/script changes:
 
 ## Documentation expectations
 
+Before starting any task:
+- review relevant files in `docs/*.md` and treat them as implementation constraints
+- review `docs/ROADMAP-MILESTONES.md` and align work with one active milestone
+- for domain/auth/privacy/security work, always check at least:
+  - `docs/DOMAIN-MODEL.md`
+  - `docs/ARCHITECTURE.md`
+  - `docs/SECURITY.md`
+  - `docs/PRIVACY-GDPR.md`
+
 When behavior or architecture changes:
 - update relevant docs in `docs/`
 - update `openapi/openapi.yaml` for public API changes
 - update ADRs when a meaningful architectural decision is made
 - update workflow docs if AI orchestration commands or runtime layout changed
+
+## Milestone delivery policy
+
+- use milestones from `docs/ROADMAP-MILESTONES.md` as default execution plan
+- execute one milestone at a time; avoid mixing unrelated milestone scope
+- if the task does not specify a milestone, choose the next incomplete one from the roadmap
+- when milestone acceptance criteria are satisfied, prepare one commit for that milestone
 
 ## Output contract for AI work
 

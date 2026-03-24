@@ -25,8 +25,25 @@ pip install -r requirements.txt
 ```
 
 Defaults:
+- Codex MCP runs non-interactive by default: `CODEX_MCP_APPROVAL_POLICY=never`
+- Codex MCP sandbox mode defaults to: `CODEX_MCP_SANDBOX_MODE=workspace-write`
+- noisy MCP validation warnings are suppressed by default: `CODEX_MCP_VALIDATION_WARNINGS=suppress`
+- MCP elicitation requests are handled in fallback mode to avoid run crashes:
+  `CODEX_MCP_ELICITATION_MODE=fallback`, `CODEX_MCP_ELICITATION_ACTION=decline`
+- implementation role uses retries and higher turn budget by default:
+  `CODEX_AGENT_MAX_TURNS=10`, `CODEX_IMPLEMENTATION_MAX_TURNS=20`, `CODEX_IMPLEMENTATION_MAX_ATTEMPTS=2`
 - session mirroring stays repo-local by default: `CODEX_SESSION_MIRROR_MODE=repo-only`
 - mirrored transcript scope is bounded with `CODEX_SESSION_MIRROR_MAX_FILES=2000`
+
+Elicitation modes:
+- `CODEX_MCP_ELICITATION_MODE=prompt` asks in terminal (`[y/N]`) for each approval
+- `CODEX_MCP_ELICITATION_MODE=fallback` uses automatic decision from `CODEX_MCP_ELICITATION_ACTION`
+- set `CODEX_MCP_ELICITATION_ACTION=accept` for full auto-approve local runs
+
+Approval payload contract:
+- Codex MCP expects decision variants aligned with current protocol: `approved`, `approved_for_session`,
+  `approved_execpolicy_amendment`, `network_policy_amendment`, `denied`, `abort`
+- this project normalizes fallback answers to `approved`/`denied` (never `approve`/`deny`)
 
 ## Main entry points (from repository root)
 
@@ -47,7 +64,7 @@ Compatibility alias:
 2. Verify command wiring (no API key/network needed):
    - `make -n ai-bootstrap ai-workflow ROLE=synthesis TASK="test" ai-parallel ai-evidence`
 3. Verify shell script syntax:
-   - `bash -n ai-orchestration/scripts/ai_*.sh scripts/ai_*.sh`
+   - `bash -n ai-orchestration/scripts/ai_*.sh`
 4. Verify Python orchestration modules compile:
    - `python3 -m py_compile ai-orchestration/ai_*.py`
 5. Run full orchestration (requires configured `.env` and network):

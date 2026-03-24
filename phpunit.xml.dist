@@ -9,10 +9,13 @@
         <testsuite name="Unit">
             <directory>tests/Unit</directory>
         </testsuite>
-        <testsuite name="Integration">
-            <directory>tests/Integration</directory>
-        </testsuite>
     </testsuites>
+
+    <source>
+        <include>
+            <directory>src</directory>
+        </include>
+    </source>
 
     <coverage includeUncoveredFiles="false">
         <report>
@@ -22,8 +25,5 @@
 
     <php>
         <server name="APP_ENV" value="test"/>
-        <env name="DEFAULT_URI" value="http://localhost"/>
-        <env name="DATABASE_URL" value="postgresql://app:!ChangeMe!@127.0.0.1:5432/app?serverVersion=16&amp;charset=utf8"/>
-        <env name="CORS_ALLOW_ORIGIN" value="'^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$'"/>
     </php>
 </phpunit>

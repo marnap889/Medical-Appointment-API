@@ -28,6 +28,50 @@ def append_text(path: Path, content: str) -> None:
         handle.write(content)
 
 
+def render_decision_template(
+    template_path: Path,
+    *,
+    date: str,
+    workflow: str,
+    task: str,
+    summary: str,
+) -> str:
+    fallback = (
+        "# Decision log\n\n"
+        f"- Date: {date}\n"
+        f"- Workflow: {workflow}\n"
+        f"- Task: {task}\n"
+        f"- Summary: {summary}\n\n"
+        "## Human review\n"
+        "- \n\n"
+        "### Accepted\n"
+        "- \n\n"
+        "### Rejected\n"
+        "- \n\n"
+        "### Deferred\n"
+        "- \n\n"
+        "### Mandatory implementation constraint for next steps\n"
+        "- \n\n"
+        "### Next approved step\n"
+        "- \n"
+    )
+
+    if not template_path.exists():
+        return fallback
+
+    content = template_path.read_text(encoding="utf-8")
+    replacements = {
+        "- Date:": f"- Date: {date}",
+        "- Workflow:": f"- Workflow: {workflow}",
+        "- Task:": f"- Task: {task}",
+        "- Summary:": f"- Summary: {summary}",
+    }
+    for placeholder, value in replacements.items():
+        content = content.replace(placeholder, value, 1)
+
+    return content
+
+
 def sync_tree_incremental(
     source: Path,
     target: Path,

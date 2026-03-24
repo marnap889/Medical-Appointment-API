@@ -17,7 +17,7 @@
 /config/secrets/prod/prod.decrypt.private.php
 /config/reference.php
 /ai-orchestration/.venv/
-/ai-orchestration/__pycache__/
+/ai-orchestration/**/__pycache__/
 /ai-orchestration/.pytest_cache/
 /ai-orchestration/runtime/logs/**
 !/ai-orchestration/runtime/logs/**/.gitkeep
