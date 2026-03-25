@@ -3,13 +3,16 @@ info:
   title: Medical Appointment API
   version: 1.0.0
   description: >
-    Minimal API skeleton exposing only the healthcheck endpoint.
+    Bootstrap contract for the health endpoint and milestone M1 identity and
+    authentication baseline.
 servers:
   - url: http://localhost:8080
 paths:
   /api/health:
     get:
       summary: Health check
+      operationId: getHealth
+      tags: [Health]
       responses:
         "200":
           description: Service is healthy
@@ -17,8 +20,245 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [ok]
+                additionalProperties: false
+                required:
+                  - ok
                 properties:
                   ok:
                     type: boolean
                     example: true
+  /api/register/patient:
+    post:
+      summary: Register patient account
+      operationId: registerPatient
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientRegistrationRequest"
+            example:
+              email: patient@example.com
+              password: StrongPassword123!
+      responses:
+        "201":
+          description: Patient account created. Response returns only the new account identifier.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegistrationResponse"
+              example:
+                id: 0195d9a1-b33f-7d12-a5c8-91cb4d6f0a11
+        "400":
+          $ref: "#/components/responses/BadRequestProblem"
+        "409":
+          $ref: "#/components/responses/ConflictProblem"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityProblem"
+  /api/register/doctor:
+    post:
+      summary: Register doctor account
+      operationId: registerDoctor
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DoctorRegistrationRequest"
+            example:
+              email: doctor@example.com
+              password: StrongPassword123!
+              specialization: Cardiology
+      responses:
+        "201":
+          description: Doctor account created. Response returns only the new account identifier.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegistrationResponse"
+              example:
+                id: 0195d9a1-b33f-7d12-a5c8-91cb4d6f0a11
+        "400":
+          $ref: "#/components/responses/BadRequestProblem"
+        "409":
+          $ref: "#/components/responses/ConflictProblem"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityProblem"
+  /api/login:
+    post:
+      summary: Authenticate patient or doctor
+      operationId: loginUser
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            example:
+              email: patient@example.com
+              password: StrongPassword123!
+      responses:
+        "200":
+          description: Authentication succeeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JwtResponse"
+              example:
+                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder.signature
+        "400":
+          $ref: "#/components/responses/BadRequestProblem"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblem"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityProblem"
+components:
+  responses:
+    BadRequestProblem:
+      description: Malformed request body
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemResponse"
+          example:
+            type: about:blank
+            title: Bad Request
+            status: 400
+            detail: Request body must contain valid JSON.
+    UnauthorizedProblem:
+      description: Authentication failed
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemResponse"
+          example:
+            type: about:blank
+            title: Unauthorized
+            status: 401
+            detail: Invalid authentication credentials.
+    ConflictProblem:
+      description: Resource state conflict
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemResponse"
+          example:
+            type: about:blank
+            title: Conflict
+            status: 409
+            detail: An account already exists for the provided credentials.
+    UnprocessableEntityProblem:
+      description: Semantic validation failure
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemResponse"
+          example:
+            type: about:blank
+            title: Unprocessable Entity
+            status: 422
+            detail: Field "specialization" contains an unsupported value.
+  schemas:
+    PatientRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: patient@example.com
+        password:
+          type: string
+          format: password
+          example: StrongPassword123!
+    DoctorRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - password
+        - specialization
+      properties:
+        email:
+          type: string
+          format: email
+          example: doctor@example.com
+        password:
+          type: string
+          format: password
+          example: StrongPassword123!
+        specialization:
+          $ref: "#/components/schemas/DoctorSpecialization"
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: patient@example.com
+        password:
+          type: string
+          format: password
+          example: StrongPassword123!
+    DoctorSpecialization:
+      type: string
+      description: Supported doctor specialization value. Enum values are PascalCase.
+      enum:
+        - GeneralPractice
+        - Cardiology
+        - Dermatology
+        - Pediatrics
+        - Orthopedics
+      example: Cardiology
+    RegistrationResponse:
+      type: object
+      description: Registration success payload containing only the created account identifier.
+      additionalProperties: false
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 0195d9a1-b33f-7d12-a5c8-91cb4d6f0a11
+    JwtResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: Bearer JWT returned after successful authentication.
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature
+    ProblemResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - detail
+      properties:
+        type:
+          type: string
+          example: about:blank
+        title:
+          type: string
+          example: Unprocessable Entity
+        status:
+          type: integer
+          example: 422
+        detail:
+          type: string
+          example: Field "email" must contain a valid email address.

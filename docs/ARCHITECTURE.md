@@ -28,7 +28,18 @@ The design goal is to keep the core booking logic isolated from transport and st
 - Appointment cancellation
 - Authentication (patient and doctor login with bearer token)
 
-Current runtime baseline is intentionally minimal (`GET /api/health`) so AI workflows can grow the codebase in controlled increments.
+Current runtime baseline includes `GET /api/health` plus M1 identity endpoints for patient registration, doctor registration, and login. The bootstrap strategy still applies to later milestones so capabilities continue to grow incrementally.
+
+## Authentication architecture
+
+The authentication flow stays split by responsibility:
+
+- UI/HTTP parses JSON requests, validates the public DTO shape, and maps failures to problem responses
+- Application handlers orchestrate registration and login use cases
+- Domain keeps user identity, roles, and invariants free from transport details
+- Infrastructure owns password hashing integration, JWT issuance/verification, and the bearer authenticator
+
+This keeps controllers thin while preventing persistence or transport concerns from leaking into the core model.
 
 ## Why modular monolith
 
@@ -47,11 +58,34 @@ Runtime persistence is Doctrine-first:
 
 ## Authorization and data scope
 
-- both patients and doctors authenticate with credentials and bearer tokens
+- both patients and doctors authenticate with credentials and receive bearer JWTs
+- the main Symfony firewall is stateless and uses a custom bearer token authenticator
+- JWTs are issued with a one-hour TTL, the user identifier as subject, and role claims for downstream client context
+- protected endpoints resolve the current user from the bearer token rather than from server-side session state
+- backend authorization uses the verified JWT `sub` only as a lookup key, then reloads the current user and effective roles from the database
+- JWT role claims are informational only for clients or downstream consumers and are not trusted for backend security assertions
 - role-based access is required (`ROLE_PATIENT`, `ROLE_DOCTOR`)
 - doctor calendar endpoints are scoped to one doctor context
 - patient appointment endpoints are scoped to one patient context
 - do not expose cross-doctor/cross-patient global calendar data
+
+## Public response shaping
+
+- registration endpoints return only the created account identifier (`{ "id": "<uuid>" }`)
+- registration responses intentionally avoid echoing roles, activation flags, or specialization data that the client does not need immediately
+
+## Enum conventions
+
+- `DoctorSpecialization` values use PascalCase everywhere across the domain model, API contracts, persistence-facing mappings, and documentation
+- examples include `GeneralPractice`, `Cardiology`, `Dermatology`, `Pediatrics`, and `Orthopedics`
+
+## Validation and hardening boundaries
+
+- password policy is enforced in HTTP request DTO validation before registration reaches the application layer
+- invalid login attempts use one neutral unauthorized response regardless of whether the email or password was incorrect
+- invalid or unverifiable bearer tokens fail with a bare `401 Unauthorized` response
+- unexpected exceptions are collapsed to a generic `500` problem response to avoid leaking internals
+- public API validation errors stay explicit (`400`/`422`) while authentication failures stay intentionally less descriptive
 
 ## Logging and auditability
 

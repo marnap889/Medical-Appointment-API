@@ -1,3 +1,7 @@
+parameters:
+    app.jwt.issuer: 'medical-appointment-api'
+    app.jwt.token_ttl: 'PT1H'
+
 services:
     _defaults:
         autowire: true
@@ -7,3 +11,46 @@ services:
         resource: '../src/'
         exclude:
             - '../src/Kernel.php'
+
+    App\Domain\User\UserRepositoryInterface: '@App\Infrastructure\User\UserRepository'
+
+    Lcobucci\JWT\Signer\Hmac\Sha256: ~
+
+    Lcobucci\JWT\Signer\Key\InMemory:
+        factory: [ 'Lcobucci\JWT\Signer\Key\InMemory', 'plainText' ]
+        arguments:
+            - '%env(string:JWT_SECRET)%'
+
+    Lcobucci\JWT\Validation\Constraint\SignedWith:
+        arguments:
+            - '@Lcobucci\JWT\Signer\Hmac\Sha256'
+            - '@Lcobucci\JWT\Signer\Key\InMemory'
+
+    Lcobucci\JWT\Validation\Constraint\IssuedBy:
+        arguments:
+            - '%app.jwt.issuer%'
+
+    Lcobucci\JWT\Configuration:
+        factory: [ 'Lcobucci\JWT\Configuration', 'forSymmetricSigner' ]
+        arguments:
+            - '@Lcobucci\JWT\Signer\Hmac\Sha256'
+            - '@Lcobucci\JWT\Signer\Key\InMemory'
+        calls:
+            - method: setValidationConstraints
+              arguments:
+                  - '@Lcobucci\JWT\Validation\Constraint\SignedWith'
+                  - '@Lcobucci\JWT\Validation\Constraint\IssuedBy'
+
+    App\Infrastructure\Security\JwtTokenTtl:
+        class: DateInterval
+        arguments:
+            - '%app.jwt.token_ttl%'
+
+    App\Infrastructure\Security\JwtIssuer:
+        arguments:
+            $issuer: '%app.jwt.issuer%'
+            $tokenTtl: '@App\Infrastructure\Security\JwtTokenTtl'
+
+    App\Infrastructure\Security\JwtTokenVerifier: ~
+
+    App\Infrastructure\Security\BearerTokenAuthenticator: ~

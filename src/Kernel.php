@@ -20,7 +20,17 @@ final class Kernel extends BaseKernel
      */
     protected function configureContainer(ContainerBuilder $container, LoaderInterface $loader): void
     {
-        $loader->load($this->getProjectDir() . '/config/packages/*.yaml', 'glob');
+        $configDir = $this->getProjectDir() . '/config';
+
+        $loader->load($configDir . '/packages/*.yaml', 'glob');
+        if (is_dir($configDir . '/packages/' . $this->environment)) {
+            $loader->load($configDir . '/packages/' . $this->environment . '/*.yaml', 'glob');
+        }
+
+        $loader->load($configDir . '/services.yaml');
+        if (is_file($configDir . '/services_' . $this->environment . '.yaml')) {
+            $loader->load($configDir . '/services_' . $this->environment . '.yaml');
+        }
     }
 
     protected function configureRoutes(RoutingConfigurator $routes): void
