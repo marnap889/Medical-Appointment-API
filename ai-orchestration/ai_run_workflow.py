@@ -5,6 +5,7 @@ import logging
 import os
 import subprocess
 import sys
+import time
 from typing import Any
 from pathlib import Path
 
@@ -234,7 +235,33 @@ async def execute_specialist(role: str, task: str, codex_server: MCPServerStdio)
         else:
             max_turns_default = max(max_turns_default, 20)
 
-    result = await Runner.run(agent, task, max_turns=max_turns_default)
+    progress_interval_raw = os.getenv("CODEX_PROGRESS_INTERVAL_SEC", "20").strip()
+    progress_interval = int(progress_interval_raw) if progress_interval_raw.isdigit() else 20
+    progress_interval = max(5, progress_interval)
+
+    start = time.monotonic()
+    print(
+        f"[progress] role={role} status=started max_turns={max_turns_default}",
+        flush=True,
+    )
+
+    run_task = asyncio.create_task(Runner.run(agent, task, max_turns=max_turns_default))
+    while not run_task.done():
+        await asyncio.sleep(progress_interval)
+        if run_task.done():
+            break
+        elapsed = int(time.monotonic() - start)
+        print(
+            f"[progress] role={role} status=running elapsed_sec={elapsed}",
+            flush=True,
+        )
+
+    result = await run_task
+    elapsed_total = int(time.monotonic() - start)
+    print(
+        f"[progress] role={role} status=finished elapsed_sec={elapsed_total}",
+        flush=True,
+    )
     return str(result.final_output), collect_run_activity(result)
 
 
@@ -345,10 +372,21 @@ async def main() -> None:
                 output = ""
 
                 for attempt in range(1, attempts + 1):
+                    print(
+                        f"[progress] role=implementation attempt={attempt}/{attempts} status=started",
+                        flush=True,
+                    )
                     output, activity = await execute_specialist(workflow, retry_task, codex_server)
                     repo_state_after = get_repo_state_signature()
                     changed = repo_state_before is not None and repo_state_after != repo_state_before
                     used_tools = bool(activity.get("used_mcp_tools", False))
+                    print(
+                        (
+                            f"[progress] role=implementation attempt={attempt}/{attempts} "
+                            f"status=finished changed={changed} used_mcp_tools={used_tools}"
+                        ),
+                        flush=True,
+                    )
 
                     write_jsonl(jsonl_path, {
                         "ts": utc_now(),
@@ -363,6 +401,10 @@ async def main() -> None:
                         break
 
                     if attempt < attempts:
+                        print(
+                            f"[progress] role=implementation attempt={attempt}/{attempts} status=retrying",
+                            flush=True,
+                        )
                         retry_task = build_implementation_retry_task(task, output, activity)
                         continue
 
