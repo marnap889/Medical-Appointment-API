@@ -10,9 +10,16 @@
 
 ### Doctor
 - can register an account with login credentials
-- specialization is required and should come from a controlled dictionary
+- specialization is required and should come from `DoctorSpecialization` enum
 - can log in and receive bearer token with doctor role
 - can define own availability and view own booked appointments
+
+### DoctorSpecialization (enum, MVP starter set)
+- `GENERAL_PRACTICE`
+- `CARDIOLOGY`
+- `DERMATOLOGY`
+- `PEDIATRICS`
+- `ORTHOPEDICS`
 
 ## Core concepts
 

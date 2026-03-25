@@ -24,11 +24,12 @@ Treat it as the default source of truth for delivery order.
 Scope:
 - patient registration with credentials
 - patient login with bearer token
-- doctor registration with credentials and required specialization
+- doctor registration with credentials and required specialization from enum
 - doctor login with bearer token and doctor role
 - patient email unique constraint
 - accounts active by default after registration
 - password hash storage only
+- starter doctor specializations available on day one (`GENERAL_PRACTICE`, `CARDIOLOGY`, `DERMATOLOGY`, `PEDIATRICS`, `ORTHOPEDICS`)
 - Doctrine migrations for added schema
 
 Acceptance criteria:
@@ -40,13 +41,13 @@ Acceptance criteria:
 ## M2 – Doctor directory and specialization browsing
 
 Scope:
-- specialization dictionary endpoint
+- doctor specialization list endpoint based on enum values
 - doctors listing endpoint filtered by specialization
 - minimal doctor profile fields for listing
 
 Acceptance criteria:
 - patient can query doctors by specialization
-- specialization values come from controlled dictionary
+- specialization values come from the defined enum set
 
 ## M3 – Doctor availability management
 
