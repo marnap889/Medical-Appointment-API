@@ -29,7 +29,7 @@ Scope:
 - patient email unique constraint
 - accounts active by default after registration
 - password hash storage only
-- starter doctor specializations available on day one (`GENERAL_PRACTICE`, `CARDIOLOGY`, `DERMATOLOGY`, `PEDIATRICS`, `ORTHOPEDICS`)
+- starter doctor specializations available on day one (`GeneralPractice`, `Cardiology`, `Dermatology`, `Pediatrics`, `Orthopedics`)
 - Doctrine migrations for added schema
 
 Acceptance criteria:

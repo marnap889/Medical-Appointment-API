@@ -11,6 +11,14 @@ This repository follows a **modular monolith** with **Clean Architecture / Hexag
 
 The design goal is to keep the core booking logic isolated from transport and storage concerns.
 
+## Code organization policy
+
+- keep code organized by layer and responsibility-specific subdirectories
+- avoid flat layer roots with mixed artifact types
+- use clear folder conventions (for example: `Entity/`, `Model/`, `Handler/`, `Dto/`)
+- keep namespaces aligned with directory layout
+- extend existing module structure consistently instead of introducing ad-hoc placement
+
 ## Bounded capabilities (target state)
 
 - Patient management

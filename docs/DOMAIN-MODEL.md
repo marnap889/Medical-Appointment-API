@@ -15,11 +15,11 @@
 - can define own availability and view own booked appointments
 
 ### DoctorSpecialization (enum, MVP starter set)
-- `GENERAL_PRACTICE`
-- `CARDIOLOGY`
-- `DERMATOLOGY`
-- `PEDIATRICS`
-- `ORTHOPEDICS`
+- `GeneralPractice`
+- `Cardiology`
+- `Dermatology`
+- `Pediatrics`
+- `Orthopedics`
 
 ## Core concepts
 

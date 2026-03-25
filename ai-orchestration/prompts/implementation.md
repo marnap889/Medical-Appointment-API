@@ -17,10 +17,17 @@ Rules:
 - prefer small diffs and incremental commits
 - keep controllers thin and DTOs explicit
 - keep business logic out of transport/persistence concerns
+- use PascalCase names for enum cases
+- keep one class/interface/trait/enum declaration per file
+- do not leave empty directories after file moves/deletions
+- place code in responsibility-specific directories (for example: `Entity/`, `Model/`, `Handler/`, `Dto/`)
+- avoid dumping unrelated classes directly in layer root directories
+- keep namespaces aligned with physical directory layout
 - use Doctrine-backed repositories for runtime code; do not add in-memory repositories outside `tests/`
 - when persistence schema changes, include Doctrine migration files in the same task
 - do not modify anything under `tests/`
 - do not edit tests, Behat features, or QA configuration in this role
+- do not run `make test-unit`, `make test-behat`, `make phpstan`, or `make cs` in this role unless explicitly requested
 - unless explicitly requested, do not modify Docker/Compose or database container orchestration files
 - do not add dependencies without strong justification
 - avoid hidden side effects and avoid logging sensitive personal data
