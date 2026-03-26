@@ -69,6 +69,9 @@ FROM php-base AS php-ci
 ENV APP_ENV=test \
     APP_DEBUG=0
 
+RUN pecl install xdebug \
+    && docker-php-ext-enable xdebug
+
 COPY . /app
 COPY --from=php-ci-deps /app/vendor /opt/vendor
 COPY --from=php-ci-deps /app/vendor /app/vendor

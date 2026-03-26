@@ -9,6 +9,7 @@ services:
       APP_ENV: test
       APP_DEBUG: "0"
       DATABASE_URL_TEST: ${DATABASE_URL_TEST}
+      XDEBUG_MODE: coverage
 
   postgres_test:
     image: postgres:${POSTGRES_SERVER_VERSION:-17}-alpine
