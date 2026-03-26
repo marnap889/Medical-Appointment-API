@@ -42,3 +42,77 @@ jobs:
 
       - name: Validate Make Command Wiring
         run: make -n ai-bootstrap ai-workflow ROLE=synthesis TASK="validation" ai-parallel ai-evidence
+
+  build-test-image:
+    runs-on: ubuntu-latest
+    needs: ai-workflow-validation
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Prepare Environment File
+        run: cp .env.dist .env
+
+      - name: Build Test Image
+        run: docker build --target php-dev -f docker/php/Dockerfile -t medical-appointment-api/php:test .
+
+      - name: Export Test Image
+        run: docker save medical-appointment-api/php:test -o /tmp/php-test-image.tar
+
+      - name: Upload Test Image Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: php-test-image
+          path: /tmp/php-test-image.tar
+          retention-days: 1
+
+  qa-matrix:
+    runs-on: ubuntu-latest
+    needs: build-test-image
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - check: unit
+            command: make test-unit
+          - check: behat
+            command: make test-behat
+          - check: cs
+            command: make cs
+          - check: phpstan
+            command: make phpstan
+
+    name: QA (${{ matrix.check }})
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Download Test Image Artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: php-test-image
+          path: /tmp
+
+      - name: Load and Tag Test Image
+        run: |
+          docker load -i /tmp/php-test-image.tar
+          docker tag medical-appointment-api/php:test medical-appointment-api/php:dev
+
+      - name: Prepare Environment File
+        run: cp .env.dist .env
+
+      - name: Start Test Stack
+        run: docker compose -f compose.yaml -f compose.dev.yaml up -d --wait --no-build php postgres postgres_test
+
+      - name: Install Composer Dependencies
+        run: make composer-install
+
+      - name: Run ${{ matrix.check }}
+        run: ${{ matrix.command }}
+
+      - name: Stop Test Stack
+        if: always()
+        run: docker compose -f compose.yaml -f compose.dev.yaml down -v --remove-orphans
