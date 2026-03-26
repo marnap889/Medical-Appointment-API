@@ -52,6 +52,13 @@ Persistence policy:
 - Do not hide business rules inside Doctrine entities by accident.
 - Avoid anemic "God services"; use focused handlers/services.
 - Public API DTOs should be explicit.
+- enum case names must use PascalCase (for example: `GeneralPractice`, `Cardiology`)
+- keep exactly one class-like declaration per file (class/interface/trait/enum)
+- do not leave empty directories after applying changes (remove them or keep them intentionally with clear justification)
+- keep code organized by responsibility and layer-specific subdirectories (not flat layer roots)
+- place artifacts in matching folders (for example: entities in `Entity/`, models/value objects in `Model/`, handlers in `Handler/`, DTOs in `Dto/`, repository implementations in infrastructure persistence folders)
+- keep namespaces aligned with directory structure
+- when adding code, prefer existing module/feature folder structure and extend it consistently
 
 ## Security and compliance expectations
 
@@ -71,6 +78,10 @@ Before marking work is complete:
 - run PHPStan
 - run PHP CS Fixer in dry-run mode
 - mention uncovered edge cases and assumptions
+
+Role-specific execution rule for AI agents:
+- only the Testing Agent runs the mandatory QA commands (`make test-unit`, `make test-behat`, `make phpstan`, `make cs`)
+- the Implementation Agent must not write tests and must not run linters/static analysis/test suites unless explicitly requested
 
 For AI orchestration/script changes:
 - run `bash -n` for changed shell scripts

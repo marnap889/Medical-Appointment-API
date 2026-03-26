@@ -9,6 +9,7 @@ Responsibilities:
 - map requirements to bounded contexts, modules, and ownership
 - define explicit domain invariants, value objects, and status models
 - define repository interfaces at domain/application boundaries
+- define or confirm folder/module placement so generated code stays organized by responsibility
 - keep runtime persistence doctrine-first; allow in-memory repositories only in tests
 - require migration planning whenever schema changes are proposed
 - identify ADR-worthy trade-offs and decision rationale

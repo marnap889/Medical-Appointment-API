@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import logging
 import os
 import subprocess
 import sys
+import time
 from typing import Any
 from pathlib import Path
 
 from dotenv import load_dotenv
 from agents import Agent, Runner, trace
+from agents.exceptions import MaxTurnsExceeded
 from agents.mcp import MCPServerStdio
 from agents.items import MCPApprovalRequestItem, MCPApprovalResponseItem, MCPListToolsItem, ToolCallItem, ToolCallOutputItem
 import mcp.client.session as mcp_client_session
@@ -214,6 +217,31 @@ def build_implementation_retry_task(task: str, previous_output: str, activity: d
     )
 
 
+def build_testing_retry_task(
+    task: str,
+    previous_output: str,
+    activity: dict[str, object],
+    changed_paths: set[str],
+    invalid_paths: list[str],
+) -> str:
+    changed_sample = sorted(changed_paths)[:20]
+    invalid_sample = invalid_paths[:20]
+    return (
+        f"{task}\n\n"
+        "Recovery constraints for this retry:\n"
+        "- Previous attempt failed testing workflow write-policy validation.\n"
+        f"- Previous MCP activity summary: {activity}\n"
+        f"- Previous changed paths sample: {changed_sample}\n"
+        f"- Previous invalid paths sample (outside allowed testing paths): {invalid_sample}\n"
+        "- You must use MCP tools to apply concrete file edits in this repository before responding.\n"
+        "- You may modify only files under tests/ and src/DataFixtures/ unless the task explicitly requests another path.\n"
+        "- Before final response, verify changed files using repository state (git status / git diff).\n"
+        "- If no compliant test changes can be applied, output BLOCKED with concrete blocker evidence.\n\n"
+        "Previous output to correct:\n"
+        f"{previous_output}"
+    )
+
+
 async def execute_specialist(role: str, task: str, codex_server: MCPServerStdio) -> tuple[str, dict[str, object]]:
     instructions = load_prompt(ROLE_TO_PROMPT[role])
 
@@ -233,8 +261,54 @@ async def execute_specialist(role: str, task: str, codex_server: MCPServerStdio)
             max_turns_default = int(implementation_override)
         else:
             max_turns_default = max(max_turns_default, 20)
+    if role == "testing":
+        testing_override = os.getenv("CODEX_TESTING_MAX_TURNS", "").strip()
+        if testing_override.isdigit():
+            max_turns_default = int(testing_override)
+        else:
+            max_turns_default = max(max_turns_default, 20)
 
-    result = await Runner.run(agent, task, max_turns=max_turns_default)
+    progress_interval_raw = os.getenv("CODEX_PROGRESS_INTERVAL_SEC", "20").strip()
+    progress_interval = int(progress_interval_raw) if progress_interval_raw.isdigit() else 20
+    progress_interval = max(5, progress_interval)
+
+    start = time.monotonic()
+    print(
+        f"[progress] role={role} status=started max_turns={max_turns_default}",
+        flush=True,
+    )
+
+    run_task = asyncio.create_task(Runner.run(agent, task, max_turns=max_turns_default))
+    while not run_task.done():
+        await asyncio.sleep(progress_interval)
+        if run_task.done():
+            break
+        elapsed = int(time.monotonic() - start)
+        print(
+            f"[progress] role={role} status=running elapsed_sec={elapsed}",
+            flush=True,
+        )
+
+    try:
+        result = await run_task
+    except MaxTurnsExceeded as exc:
+        elapsed_total = int(time.monotonic() - start)
+        print(
+            f"[progress] role={role} status=max_turns_exceeded elapsed_sec={elapsed_total}",
+            flush=True,
+        )
+        return (
+            (
+                "BLOCKED: agent exceeded max turns before finishing. "
+                f"Details: {exc}"
+            ),
+            {"item_counts": {}, "mcp_activity_count": 0, "used_mcp_tools": False},
+        )
+    elapsed_total = int(time.monotonic() - start)
+    print(
+        f"[progress] role={role} status=finished elapsed_sec={elapsed_total}",
+        flush=True,
+    )
     return str(result.final_output), collect_run_activity(result)
 
 
@@ -282,25 +356,48 @@ def ensure_openai_api_key() -> None:
         raise SystemExit("Missing OPENAI_API_KEY. Set it in ai-orchestration/.env before running workflows.")
 
 
-def get_repo_state_signature() -> str | None:
+def get_repo_file_snapshot() -> dict[str, str] | None:
     if not (PROJECT_ROOT / ".git").exists():
         return None
 
-    def git_output(*args: str) -> str:
-        result = subprocess.run(
-            ["git", "-C", str(PROJECT_ROOT), *args],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode != 0:
-            return ""
-        return result.stdout
+    result = subprocess.run(
+        ["git", "-C", str(PROJECT_ROOT), "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        return None
 
-    status = git_output("status", "--porcelain=v1", "--untracked-files=all")
-    diff_unstaged = git_output("diff", "--no-ext-diff")
-    diff_staged = git_output("diff", "--cached", "--no-ext-diff")
-    return f"STATUS\n{status}\nDIFF\n{diff_unstaged}\nCACHED\n{diff_staged}"
+    files = [path for path in result.stdout.decode("utf-8", errors="ignore").split("\0") if path]
+    snapshot: dict[str, str] = {}
+    for file_path in files:
+        absolute_path = PROJECT_ROOT / file_path
+        if not absolute_path.is_file():
+            continue
+        try:
+            digest = hashlib.sha256(absolute_path.read_bytes()).hexdigest()
+        except OSError:
+            continue
+        snapshot[file_path] = digest
+    return snapshot
+
+
+def get_changed_paths(
+    before: dict[str, str] | None,
+    after: dict[str, str] | None,
+) -> set[str]:
+    if before is None or after is None:
+        return set()
+
+    changed: set[str] = set()
+    for path in set(before) | set(after):
+        if before.get(path) != after.get(path):
+            changed.add(path)
+    return changed
+
+
+def is_allowed_testing_change(path: str) -> bool:
+    return path.startswith("tests/") or path.startswith("src/DataFixtures/")
 
 
 async def main() -> None:
@@ -321,7 +418,7 @@ async def main() -> None:
     jsonl_path = AGENT_RUNS / f"{run_id}-{workflow}.jsonl"
     summary_path = SUMMARIES / f"{run_id}-{workflow}.md"
     decisions_path = DECISIONS / f"{run_id}-{workflow}.md"
-    repo_state_before = get_repo_state_signature() if workflow == "implementation" else None
+    repo_snapshot_before = get_repo_file_snapshot() if workflow in {"implementation", "testing"} else None
 
     write_jsonl(jsonl_path, {
         "ts": utc_now(),
@@ -335,49 +432,105 @@ async def main() -> None:
 
     async with build_codex_mcp_server() as codex_server:
         with trace(workflow):
-            if workflow != "implementation":
+            if workflow not in {"implementation", "testing"}:
                 output, activity = await execute_specialist(workflow, task, codex_server)
             else:
-                max_attempts = os.getenv("CODEX_IMPLEMENTATION_MAX_ATTEMPTS", "2").strip()
+                attempts_env_name = (
+                    "CODEX_IMPLEMENTATION_MAX_ATTEMPTS"
+                    if workflow == "implementation"
+                    else "CODEX_TESTING_MAX_ATTEMPTS"
+                )
+                max_attempts = os.getenv(attempts_env_name, "2").strip()
                 attempts = int(max_attempts) if max_attempts.isdigit() else 2
                 attempts = max(1, attempts)
                 retry_task = task
                 output = ""
 
                 for attempt in range(1, attempts + 1):
+                    print(
+                        f"[progress] role={workflow} attempt={attempt}/{attempts} status=started",
+                        flush=True,
+                    )
                     output, activity = await execute_specialist(workflow, retry_task, codex_server)
-                    repo_state_after = get_repo_state_signature()
-                    changed = repo_state_before is not None and repo_state_after != repo_state_before
+                    repo_snapshot_after = get_repo_file_snapshot()
+                    changed_paths = get_changed_paths(repo_snapshot_before, repo_snapshot_after)
+                    changed = bool(changed_paths)
+                    invalid_paths = (
+                        [path for path in sorted(changed_paths) if not is_allowed_testing_change(path)]
+                        if workflow == "testing"
+                        else []
+                    )
                     used_tools = bool(activity.get("used_mcp_tools", False))
+                    print(
+                        (
+                            f"[progress] role={workflow} attempt={attempt}/{attempts} "
+                            f"status=finished changed={changed} invalid_paths={len(invalid_paths)} "
+                            f"used_mcp_tools={used_tools}"
+                        ),
+                        flush=True,
+                    )
 
                     write_jsonl(jsonl_path, {
                         "ts": utc_now(),
-                        "event": "implementation_attempt",
+                        "event": f"{workflow}_attempt",
                         "attempt": attempt,
                         "changed": changed,
+                        "changed_paths_count": len(changed_paths),
+                        "changed_paths_sample": sorted(changed_paths)[:20],
+                        "invalid_paths_count": len(invalid_paths),
+                        "invalid_paths_sample": invalid_paths[:20],
                         "used_mcp_tools": used_tools,
                         "activity": activity,
                     })
 
-                    if changed:
+                    run_is_valid = changed and not invalid_paths
+                    if run_is_valid:
                         break
 
                     if attempt < attempts:
-                        retry_task = build_implementation_retry_task(task, output, activity)
+                        print(
+                            f"[progress] role={workflow} attempt={attempt}/{attempts} status=retrying",
+                            flush=True,
+                        )
+                        if workflow == "implementation":
+                            retry_task = build_implementation_retry_task(task, output, activity)
+                        else:
+                            retry_task = build_testing_retry_task(
+                                task=task,
+                                previous_output=output,
+                                activity=activity,
+                                changed_paths=changed_paths,
+                                invalid_paths=invalid_paths,
+                            )
                         continue
 
-                    blocked_reason = (
-                        "No repository changes detected after implementation workflow run. "
-                        "Treat this run as blocked and re-run with enforced concrete edits."
-                    )
+                    if workflow == "implementation":
+                        blocked_reason = (
+                            "No repository changes detected after implementation workflow run. "
+                            "Treat this run as blocked and re-run with enforced concrete edits."
+                        )
+                    elif not changed:
+                        blocked_reason = (
+                            "No repository changes detected after testing workflow run. "
+                            "Treat this run as blocked and re-run with enforced test edits."
+                        )
+                    else:
+                        blocked_reason = (
+                            "Testing workflow modified files outside allowed paths (tests/ and src/DataFixtures/). "
+                            f"Invalid paths: {', '.join(invalid_paths[:20])}"
+                        )
                     if not used_tools:
                         blocked_reason += " No MCP tool activity detected."
                     output = f"{output}\n\n## Execution status\n- blocked: {blocked_reason}\n"
                     write_jsonl(jsonl_path, {
                         "ts": utc_now(),
-                        "event": "implementation_blocked_no_repo_changes",
+                        "event": f"{workflow}_blocked_policy_violation",
                         "workflow": workflow,
                         "task": task,
+                        "changed_paths_count": len(changed_paths),
+                        "changed_paths_sample": sorted(changed_paths)[:20],
+                        "invalid_paths_count": len(invalid_paths),
+                        "invalid_paths_sample": invalid_paths[:20],
                         "activity": activity,
                     })
 

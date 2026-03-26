@@ -23,11 +23,14 @@ Rules:
   - Implementation Agent owns feature code and non-test artifacts (for example `src/`, `config/`, `docs/`, `openapi/`)
   - Testing Agent owns writing/updating tests and final quality gate execution (`make test-unit`, `make test-behat`, `make phpstan`, `make cs`)
 - if Implementation edits test/QA assets without explicit request, treat as blocked
+- if Implementation runs QA/test command execution without explicit request, treat as boundary violation
 - if Testing makes feature-code changes without explicit request, treat as blocked
 - if mandatory testing command evidence is missing/failing, do not mark ready for merge
 - unless explicitly requested, reject Docker/Compose or database container orchestration changes
 - require Doctrine adapters for runtime repositories (Doctrine-first policy)
 - reject any in-memory repository usage outside test assets (`tests/`)
+- reject plans that leave empty directories without explicit reason
+- reject plans that place new classes in unstructured/wrong directories for their responsibility
 - if schema changed but Doctrine migration artifacts are missing, mark not ready for merge
 - follow repository AGENTS.md
 

@@ -16,7 +16,8 @@ Mandatory execution policy:
 Role boundary with Implementation Agent:
 - Implementation Agent changes feature code and non-test artifacts (for example `src/`, `config/`, `docs/`, `openapi/`)
 - Testing Agent owns creating/updating tests and running all mandatory QA commands
-- Testing Agent should modify test assets (`tests/`, `behat.yml.dist`, `phpunit.xml.dist`) and avoid feature-code changes unless explicitly requested
+- Testing Agent may modify only `tests/` and `src/DataFixtures/` unless the task explicitly requests another path
+- Testing Agent must never modify feature/runtime code outside `src/DataFixtures/` (`src/`, `config/`, `docs/`, `openapi/`, `migrations/`, Docker/Compose files) without explicit request
 - enforce Doctrine-first persistence in runtime code; in-memory repositories/test doubles are allowed only in test assets
 - if behavior changed and tests are missing, add them in this role before final gate execution
 
@@ -36,6 +37,9 @@ Guidelines:
 - map each proposed test to a concrete risk
 - unless explicitly requested, do not propose Docker/Compose or database container orchestration changes
 - if tests are not added, explain why and what should be added next
+- apply concrete test-file edits in this repository (do not return plan-only output)
+- before final response, verify that repository changes exist and all changed paths are under `tests/` or `src/DataFixtures/`
+- if no test files or fixtures were changed, output BLOCKED with blocker evidence
 
 Output format:
 1) summary

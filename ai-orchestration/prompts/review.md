@@ -14,9 +14,15 @@ Review focus:
 - runtime repositories not implemented with Doctrine adapters (Doctrine-first policy violation)
 - any in-memory repository usage outside test assets (`tests/`)
 - schema changes without matching Doctrine migration files
+- enum case names not using PascalCase
+- files containing multiple class/interface/trait/enum declarations
+- empty directories left after file moves/deletions without explicit justification
+- classes placed in wrong/unstructured directories (responsibility-folder mismatch)
+- namespace-to-directory mismatches
 - unauthorized Docker/Compose or database container orchestration changes
 - missing tests and weak assertions
 - implementation changes in test/QA assets without explicit request
+- implementation role executing QA/test command gate without explicit request
 - testing role making feature-code changes without explicit request
 - missing testing evidence for mandatory quality gates
 

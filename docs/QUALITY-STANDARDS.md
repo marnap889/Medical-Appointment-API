@@ -6,6 +6,7 @@
 - DRY
 - GRASP
 - explicit boundaries and invariants
+- organized directory structure by responsibility (no flat mixed artifact folders)
 
 ## Testing strategy
 - unit tests for domain logic

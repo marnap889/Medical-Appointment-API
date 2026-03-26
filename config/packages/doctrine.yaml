@@ -3,4 +3,10 @@ doctrine:
         url: '%env(resolve:DATABASE_URL)%'
         profiling_collect_backtrace: '%kernel.debug%'
     orm:
-        mappings: {}
+        mappings:
+            Domain:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Domain'
+                prefix: 'App\Domain'
+                alias: Domain

@@ -7,6 +7,7 @@ services:
       - ./:/app
     environment:
       APP_DEBUG: "1"
+      DATABASE_URL_TEST: ${DATABASE_URL_TEST}
       XDEBUG_MODE: develop,debug,coverage
       XDEBUG_START_WITH_REQUEST: trigger
       XDEBUG_CLIENT_HOST: host.docker.internal
@@ -22,5 +23,20 @@ services:
     volumes:
       - pgdata_dev:/var/lib/postgresql/data
 
+  postgres_test:
+    image: postgres:${POSTGRES_SERVER_VERSION:-17}-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_TEST_DB:-main_test}
+      POSTGRES_USER: ${POSTGRES_TEST_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_TEST_PASSWORD:-app}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - pgdata_test_dev:/var/lib/postgresql/data
+
 volumes:
   pgdata_dev:
+  pgdata_test_dev:

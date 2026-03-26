@@ -67,6 +67,8 @@ docker compose -f compose.yaml -f compose.dev.yaml exec php php bin/console doct
 make test
 make test-unit
 make test-behat
+make test-db-prepare
+make test-fixtures-load
 make phpstan
 make cs
 
@@ -85,8 +87,9 @@ make up-prod
 Notes:
 - `php-prod` image includes app code + production dependencies and does not include Composer or Xdebug.
 - `php-dev` image (from `compose.dev.yaml`) includes Composer + Xdebug and is intended for local development/tests.
-- `.env.dist` is a plain template of required vars (`APP_ENV`, `APP_SECRET`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_SERVER_VERSION`, `DATABASE_URL`).
-- `DATABASE_URL` is built in `.env`/`.env.dist` from DB vars, so Doctrine always gets `DATABASE_URL` and DB values stay centralized.
+- `.env.dist` is a plain template of required vars (`APP_ENV`, `APP_SECRET`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_SERVER_VERSION`, `DATABASE_URL`, plus test DB equivalents and `DATABASE_URL_TEST`).
+- `make test-behat` prepares dedicated `postgres_test` (create DB + migrate + fixtures load) before running scenarios.
+- `DATABASE_URL` and `DATABASE_URL_TEST` are built in `.env`/`.env.dist` from DB vars, so Doctrine gets explicit runtime and test connections.
 
 ### 5. Prepare AI orchestration
 

@@ -32,6 +32,8 @@ Defaults:
   `CODEX_MCP_ELICITATION_MODE=fallback`, `CODEX_MCP_ELICITATION_ACTION=decline`
 - implementation role uses retries and higher turn budget by default:
   `CODEX_AGENT_MAX_TURNS=10`, `CODEX_IMPLEMENTATION_MAX_TURNS=20`, `CODEX_IMPLEMENTATION_MAX_ATTEMPTS=2`
+- workflow progress heartbeat is printed during long runs:
+  `CODEX_PROGRESS_INTERVAL_SEC=20` (minimum 5 seconds)
 - session mirroring stays repo-local by default: `CODEX_SESSION_MIRROR_MODE=repo-only`
 - mirrored transcript scope is bounded with `CODEX_SESSION_MIRROR_MAX_FILES=2000`
 
