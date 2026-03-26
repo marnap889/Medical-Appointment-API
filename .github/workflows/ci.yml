@@ -55,10 +55,10 @@ jobs:
         run: cp .env.dist .env
 
       - name: Build Test Image
-        run: docker build --target php-dev -f docker/php/Dockerfile -t medical-appointment-api/php:test .
+        run: docker build --target php-ci -f docker/php/Dockerfile -t medical-appointment-api/php:ci .
 
       - name: Export Test Image
-        run: docker save medical-appointment-api/php:test -o /tmp/php-test-image.tar
+        run: docker save medical-appointment-api/php:ci -o /tmp/php-test-image.tar
 
       - name: Upload Test Image Artifact
         uses: actions/upload-artifact@v7
@@ -76,13 +76,13 @@ jobs:
       matrix:
         include:
           - check: unit
-            command: make test-unit
+            command: make COMPOSE="docker compose -f compose.yaml -f compose.ci.yaml" test-unit
           - check: behat
-            command: make test-behat
+            command: make COMPOSE="docker compose -f compose.yaml -f compose.ci.yaml" test-behat
           - check: cs
-            command: make cs
+            command: make COMPOSE="docker compose -f compose.yaml -f compose.ci.yaml" cs
           - check: phpstan
-            command: make phpstan
+            command: make COMPOSE="docker compose -f compose.yaml -f compose.ci.yaml" phpstan
 
     name: QA (${{ matrix.check }})
 
@@ -96,23 +96,18 @@ jobs:
           name: php-test-image
           path: /tmp
 
-      - name: Load and Tag Test Image
-        run: |
-          docker load -i /tmp/php-test-image.tar
-          docker tag medical-appointment-api/php:test medical-appointment-api/php:dev
+      - name: Load Test Image
+        run: docker load -i /tmp/php-test-image.tar
 
       - name: Prepare Environment File
         run: cp .env.dist .env
 
       - name: Start Test Stack
-        run: docker compose -f compose.yaml -f compose.dev.yaml up -d --wait --no-build php postgres postgres_test
-
-      - name: Install Composer Dependencies
-        run: make composer-install
+        run: docker compose -f compose.yaml -f compose.ci.yaml up -d --wait --no-build php postgres postgres_test
 
       - name: Run ${{ matrix.check }}
         run: ${{ matrix.command }}
 
       - name: Stop Test Stack
         if: always()
-        run: docker compose -f compose.yaml -f compose.dev.yaml down -v --remove-orphans
+        run: docker compose -f compose.yaml -f compose.ci.yaml down -v --remove-orphans
