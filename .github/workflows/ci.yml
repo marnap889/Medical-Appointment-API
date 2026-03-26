@@ -105,6 +105,19 @@ jobs:
       - name: Start Test Stack
         run: docker compose -f compose.yaml -f compose.ci.yaml up -d --wait --no-build php postgres postgres_test
 
+      - name: Ensure Composer Vendor Tree
+        run: |
+          docker compose -f compose.yaml -f compose.ci.yaml exec php sh -lc \
+            'if [ ! -f /app/vendor/autoload.php ]; then mkdir -p /app/vendor && cp -a /opt/vendor/. /app/vendor/; fi'
+
+      - name: Verify Prebuilt Composer Dependencies
+        run: |
+          docker compose -f compose.yaml -f compose.ci.yaml exec php test -f /app/vendor/autoload.php
+          docker compose -f compose.yaml -f compose.ci.yaml exec php test -x /app/vendor/bin/phpunit
+          docker compose -f compose.yaml -f compose.ci.yaml exec php test -x /app/vendor/bin/behat
+          docker compose -f compose.yaml -f compose.ci.yaml exec php test -x /app/vendor/bin/phpstan
+          docker compose -f compose.yaml -f compose.ci.yaml exec php test -x /app/vendor/bin/php-cs-fixer
+
       - name: Run ${{ matrix.check }}
         run: ${{ matrix.command }}
 

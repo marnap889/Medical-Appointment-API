@@ -1,6 +1,10 @@
 services:
   php:
     image: medical-appointment-api/php:ci
+    user: "0:0"
+    volumes:
+      - ./:/app
+      - php_vendor_ci:/app/vendor
     environment:
       APP_ENV: test
       APP_DEBUG: "0"
@@ -17,3 +21,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+
+volumes:
+  php_vendor_ci:

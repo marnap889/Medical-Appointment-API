@@ -70,6 +70,7 @@ ENV APP_ENV=test \
     APP_DEBUG=0
 
 COPY . /app
+COPY --from=php-ci-deps /app/vendor /opt/vendor
 COPY --from=php-ci-deps /app/vendor /app/vendor
 
 RUN mkdir -p /app/var/cache /app/var/log \
