@@ -1,0 +1,27 @@
+services:
+  php:
+    image: medical-appointment-api/php:ci
+    user: "0:0"
+    volumes:
+      - ./:/app
+      - php_vendor_ci:/app/vendor
+    environment:
+      APP_ENV: test
+      APP_DEBUG: "0"
+      DATABASE_URL_TEST: ${DATABASE_URL_TEST}
+      XDEBUG_MODE: coverage
+
+  postgres_test:
+    image: postgres:${POSTGRES_SERVER_VERSION:-17}-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_TEST_DB:-main_test}
+      POSTGRES_USER: ${POSTGRES_TEST_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_TEST_PASSWORD:-app}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  php_vendor_ci:

@@ -50,6 +50,39 @@ USER www-data
 
 CMD ["php-fpm"]
 
+FROM php-base AS php-ci-deps
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+COPY composer.json composer.lock* symfony.lock* ./
+
+RUN composer install \
+    --no-interaction \
+    --no-plugins \
+    --prefer-dist \
+    --no-progress \
+    --optimize-autoloader \
+    --no-scripts
+
+FROM php-base AS php-ci
+
+ENV APP_ENV=test \
+    APP_DEBUG=0
+
+RUN pecl install xdebug \
+    && docker-php-ext-enable xdebug
+
+COPY . /app
+COPY --from=php-ci-deps /app/vendor /opt/vendor
+COPY --from=php-ci-deps /app/vendor /app/vendor
+
+RUN mkdir -p /app/var/cache /app/var/log \
+    && chown -R www-data:www-data /app/var
+
+USER www-data
+
+CMD ["php-fpm"]
+
 FROM php-base AS php-dev
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
